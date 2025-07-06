@@ -1,0 +1,70 @@
+stages:
+  - ".pre"
+  - deploy
+  - ".post"
+
+deploy_code:
+  stage: deploy
+  before_script:
+    - which ssh-agent || { echo "ssh-agent is not installed on the runner host."; exit 1; }
+    - which git || { echo "git is not installed on the runner host."; exit 1; }
+    - eval "$(ssh-agent -s)"
+    - echo "$SSH_KEY" > key.pem
+    - chmod 600 key.pem
+    - ssh-add key.pem
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+  script: |
+    echo "Runner IP address: $(hostname -I)"
+    echo "Connecting to remote server on port $SSH_PORT and initializing/updating git repository..."
+    ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "
+      cd $PROJECT_PATH &&
+      
+      # Kill any existing 'npm run serve' and 'node server.js' processes
+      echo 'Stopping existing npm serve and node server.js processes...'
+      SERVE_PID=\$(ps x | grep 'npm run serve' | grep -v grep | awk '{print \$1}')
+      NODE_PID=\$(ps x | grep 'node server.js' | grep -v grep | awk '{print \$1}')
+
+      if [ ! -z \"\$SERVE_PID\" ]; then
+        echo \"Killing 'npm run serve' process ID \$SERVE_PID...\"
+        kill -9 \$SERVE_PID
+      else
+        echo 'No existing npm serve process running'
+      fi
+
+      if [ ! -z \"\$NODE_PID\" ]; then
+        echo \"Killing 'node server.js' process ID \$NODE_PID...\"
+        kill -9 \$NODE_PID
+      else
+        echo 'No existing node server.js process running'
+      fi
+
+      # Verify that no related processes are still running
+      echo 'Verifying that no related processes are running...'
+      ps x | grep 'npm run serve' | grep -v grep
+      ps x | grep 'node server.js' | grep -v grep
+      
+      # Pull the latest code
+      if [ ! -d .git ]; then 
+        git init && 
+        git branch -m main && 
+        git remote add origin https://gitlab-ci-token:${GIT_TOKEN}@git.thinkhuge.net/marius/broker-panel-fe.git;
+      else
+        git remote set-url origin https://gitlab-ci-token:${GIT_TOKEN}@git.thinkhuge.net/marius/broker-panel-fe.git;
+      fi &&
+      git pull origin main &&
+      
+      # Install dependencies and build the project
+      npm install &&
+      npm run build &&
+      # Run npm serve in background
+      echo 'Starting npm serve in the background...'
+      nohup npm run serve > serve.log 2>&1 &
+      
+      echo 'Deployment completed successfully.'
+    "
+  only:
+    - main
+  environment:
+    name: production
+    url: https://partners.marius.staging.thinkhuge.net

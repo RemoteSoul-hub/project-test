@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>VNC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body, html {
+            height: 100%;
+            min-height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        #screen {
+            height: calc(100% - 60px);
+        }
+
+        .top-bar {
+            background: rgb(255, 255, 255);
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            max-height: 20px;
+        }
+
+        .container {
+            height: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #ctrl-alt-del {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            color: black;
+            text-decoration: none;
+        }
+    </style>
+    <script type="module" crossorigin="anonymous">
+        // Parse URL parameters to get VNC connection data
+        const urlParams = new URLSearchParams(window.location.search);
+        const socketHash = urlParams.get('path');
+        const socketPassword = urlParams.get('password');
+        
+        // Import noVNC RFB module
+        import RFB from '/novnc/core/rfb.js';
+
+        // Create WebSocket URL with the socket hash
+        const url = `wss://solus2.t-h.cloud/vnc?url=${socketHash}`;
+        const password = socketPassword;
+        const options = {
+            credentials: {
+                password: password
+            }
+        };
+
+        // Initialize RFB connection when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const rfb = new RFB(
+                document.getElementById('screen'),
+                url,
+                options
+            );
+
+            // Configure RFB options
+            rfb.scaleViewport = true;
+            rfb.resizeSession = true;
+            rfb.focusOnClick = true;
+
+            // Add event listener for Ctrl+Alt+Del button
+            document.querySelector('#ctrl-alt-del').addEventListener('click', () => {
+                rfb.sendCtrlAltDel();
+            });
+            
+            // Handle connection events
+            rfb.addEventListener("connect", () => {
+                
+            });
+            
+            rfb.addEventListener("disconnect", (e) => {
+                
+            });
+            
+            // Handle window messages from parent frame
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'sendCtrlAltDel') {
+                    rfb.sendCtrlAltDel();
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <a href="#" id="ctrl-alt-del">
+            Ctrl + Alt + Del
+        </a>
+    </div>
+    <div id="screen"></div>
+</div>
+</body>
+</html>

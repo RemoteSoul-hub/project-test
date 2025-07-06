@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  min-height: 500px;
+  max-height: 800px;
+  overflow-y: auto;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+.ProseMirror p {
+  margin: 1em 0;
+}
+
+.ProseMirror > *:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 1em 0;
+}
+
+.ProseMirror ul li {
+  list-style-type: disc;
+}
+
+.ProseMirror ol li {
+  list-style-type: decimal;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+.ProseMirror-selectednode {
+  outline: 2px solid #2563eb;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+

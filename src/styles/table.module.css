@@ -1,0 +1,15 @@
+/* Table-specific styles to prevent layout shifts */
+.tableContainer {
+  min-height: 500px;
+  transition: opacity 150ms ease-in-out;
+  position: relative;
+}
+
+.paginationContainer {
+  transition: opacity 150ms ease-in-out;
+}
+
+/* Prevent layout shifts when loading new data */
+.contentPreserveHeight {
+  min-height: inherit;
+}

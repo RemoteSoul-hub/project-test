@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Neue Haas Display – XXThin (weight 100) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayXXThin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+}
+
+/* XXThin Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayXXThinItalic.ttf') format('truetype');
+  font-weight: 100;
+  font-style: italic;
+}
+
+/* XThin (weight 200) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayXThin.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+}
+
+/* XThin Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayXThinItalic.ttf') format('truetype');
+  font-weight: 200;
+  font-style: italic;
+}
+
+/* Thin (weight 300) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayThin.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+/* Thin Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayThinItalic.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+}
+
+/* Light (weight 400) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayLight.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Light Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayLightItalic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Medium (weight 500) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayMedium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Medium Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayMediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* Roman (weight 600) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayRoman.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Roman Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayRomanItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Bold (weight 700) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayBold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Bold Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayBoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* Black (weight 900) */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayBlack.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+/* Black Italic */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplayBlackItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+}
+
+
+/* ===== Design Tokens (optional) ===== */
+:root {
+  --bg-sidebar: #f9fafb; /* fallback for sidebar */
+}
+
+.dark {
+  --bg-sidebar: #1f2937;
+}
+
+/* ===== Base Layer ===== */
+@layer base {
+  body {
+    @apply font-sans bg-primary-light dark:bg-primary-dark;
+  }
+
+  h1, h2, h3, h4, h5, h6, p {
+    @apply text-text-light dark:text-text-dark;
+  }
+
+    p, button {
+    @apply text-sm; 
+  }
+}
+
+.text-auto {
+  @apply text-text-light dark:text-text-dark;
+}
+
+/* ===== Component Utilities Layer ===== */
+@layer components {
+  .bg-sidebar {
+    background-color: var(--bg-sidebar);
+  }
+
+  .rounded-layout {
+    @apply rounded-lg;
+  }
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #FFAE00 0%, #3241E7 61%, #2E3CD3 99%, #212B99 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ai-gradient {
+  background: linear-gradient(135deg, #A12BF0, #3241E7 61%, #2E3CD3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.th-gradient {
+  background: linear-gradient(
+    65deg,
+    #8008FF 0%,
+    #25199B 100%
+  );
+}
+
+.true-gradient-border {
+  position: relative;
+  background: transparent;
+}
+
+.true-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px; 
+  background: linear-gradient(45deg, #8008FF, #25199B);
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: subtract;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none; 
+}
+
+@layer components {
+  .btn-primary-vps {
+    @apply w-full rounded-sd transition-colors font-medium py-4;
+  }
+
+  .btn-primary-vps--active {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+  }
+
+  .btn-primary-vps--disabled {
+    @apply bg-gray-300 text-gray-500 cursor-not-allowed;
+  }
+}
+
+.mask-fade {
+  -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+  mask-image: radial-gradient(circle, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  background: transparent;
+}
