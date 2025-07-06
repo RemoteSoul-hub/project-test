@@ -1,151 +1,161 @@
-'use client';
+'use client'
 import { useState, useEffect } from 'react';
-import MarketingHeader from '@/components/MarketingHeader';
-import Steps from '@/components/Steps';
-import OffersTabs from '@/components/OffersTabs';
-import ConfigureServer from '@/components/offers/ConfigureServer';
-import TailoredSolution from '@/components/offers/TailoredSolution';
-import VpsInfrastructurePlatform from '@/components/offers/VpsInfrastructurePlatform';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import UserDetailsContent from '@/components/user/UserDetailsContent';
+import ApiService from '@/services/apiService';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { isImpersonating, getImpersonatedUser, getUser } from '@/services/AuthService';
 
-export default function ControlPanelPage() {
-  const [activeTab, setActiveTab] = useState('configure');
-  const [step, setStep] = useState(1);
-
-  // No need to manage component-level configuration state - child handles everything
-
-  const getCopy = () => {
-    switch (activeTab) {
-      case 'configure':
-        return {
-          title: (
-            <>
-              Server <span className="text-gradient">Configuration</span>
-            </>
-          ),
-          description: (
-            <>
-              Dedicated servers backed by overprovisioned network. Unlimited data transfer,{" "}
-              <span className="hidden md:inline"><br /></span>
-              unshared 1×10GE — 2×100GE ports, unmetered DDoS protection and no commitment.
-            </>
-          ),
-        };
-      case 'tailored':
-        return {
-          title: (
-            <>
-              Let's build <span className="text-gradient">your Infrastructure</span>
-            </>
-          ),
-          description: (
-            <>
-              Provide detailed information about your project to help us understand your{" "}
-              <span className="hidden md:inline"><br /></span>
-              requirements. We'll get back to you with a tailored proposal{" "}
-              <span className="text-active-light font-medium">within 1 working day</span>.
-            </>
-          ),
-        };
-      case 'vps':
-        return {
-          title: (
-            <>
-              Effortlessly offer VPS to <span className="text-gradient">Your End-Users</span>
-            </>
-          ),
-          description: (
-            <>
-              Provide detailed information about your project to help us understand your{" "}
-              <span className="hidden md:inline"><br /></span>
-              requirements. We'll get back to you with a tailored proposal within 1 working day.
-            </>
-          ),
-        };
-      default:
-        return { title: null, description: null };
+export default function UserDetailsPage() {
+  const params = useParams();
+  const userId = params.id;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [user, setUser] = useState(null);
+  const [infrastructureData, setInfrastructureData] = useState([]);
+  const [paginationLinks, setPaginationLinks] = useState(null); // Added for pagination
+  const [paginationMeta, setPaginationMeta] = useState(null);   // Added for pagination
+  const [loading, setLoading] = useState(true); // Overall page loading
+  const [loadingServers, setLoadingServers] = useState(false); // Specific loading for servers list
+  const [error, setError] = useState(null); // Combined error state
+  const { user: authUser } = useAuth();
+  
+  // Check if user is authenticated
+  const isUserLoggedIn = () => {
+    try {
+      // Check if impersonating or regular user exists
+      if (isImpersonating()) {
+        const impersonatedUser = getImpersonatedUser();
+        return !!impersonatedUser;
+      } else {
+        const regularUser = getUser();
+        return !!regularUser;
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      // Fallback to AuthProvider user
+      return !!authUser;
     }
   };
 
-  const { title, description } = getCopy();
+  // Function to fetch user details
+  async function fetchUserDetails() {
+    try {
+      const userData = await ApiService.get(`/users/${userId}`);
+      const userDataFromResponse = userData.data;
+      const formattedUser = {
+        id: userDataFromResponse.id,
+        fullName: userDataFromResponse.name,
+        email: userDataFromResponse.email,
+        phoneNumber: userDataFromResponse.phone_number || '',
+        language: 'English', // Default value since we're ignoring language
+        username: userDataFromResponse.username || '',
+        userCreated: formatDate(userDataFromResponse.created_at), // Use formatDate defined below
+        roles: userDataFromResponse.roles || [],
+        login_username: userDataFromResponse.login_username || '', // Add the login_username field
+      };
+      
+      
+      setUser(formattedUser);
+      // Clear user-specific part of error if successful
+      setError(prev => prev?.replace('Failed to load user details.', '').trim() || null);
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+      setError(prev => prev ? `${prev} Failed to load user details.` : 'Failed to load user details.');
+      setUser(null); // Ensure user is null on error
+    }
+  }
+
+  // Function to fetch user servers with pagination support
+  async function fetchUserServers(page = 1) {
+    setLoadingServers(true);
+    // Clear only server-specific errors before fetching
+    setError(prev => prev?.replace('Failed to load infrastructure data.', '').trim() || null); 
+    try {
+      const serversResponse = await ApiService.getUserServers(userId, { page });
+      
+      setInfrastructureData(serversResponse.data || []);
+      setPaginationLinks(serversResponse.links);
+      setPaginationMeta(serversResponse.meta);
+    } catch (serverError) {
+      console.error(`Error fetching user servers (page ${page}):`, serverError);
+      setError(prevError => prevError ? `${prevError} Failed to load infrastructure data.` : 'Failed to load infrastructure data.');
+      setInfrastructureData([]); // Set to empty array on error
+      setPaginationLinks(null);
+      setPaginationMeta(null);
+    } finally {
+      setLoadingServers(false);
+    }
+  }
+
+  useEffect(() => {
+    async function initialLoad() {
+      if (!userId) return;
+      setLoading(true); // Start overall loading
+      setError(null); // Reset errors on new load
+      await fetchUserDetails(); // Fetch user details first
+      await fetchUserServers(1); // Then fetch the first page of servers
+      setLoading(false); // End overall loading
+    }
+    initialLoad();
+  }, [userId]); // Rerun effect only if userId changes
+
+  // Handle page changes for server list
+  const handleServerPageChange = (newPage) => {
+    // Check if newPage is valid based on meta
+    if (newPage >= 1 && (!paginationMeta || newPage <= paginationMeta.last_page)) {
+      fetchUserServers(newPage);
+    } else {
+      console.warn(`Attempted to navigate to invalid page: ${newPage}`);
+    }
+  };
+  
+  // Helper function to format date (ensure it's defined before use)
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+  
+  if (loading) {
+    return <div className="p-6 text-center">Loading user data...</div>;
+  }
+  
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+  }
+  
+  if (!user) {
+    return <div className="p-6 text-center">User not found</div>;
+  }
+
+  // Separate check for user data error vs server data error
+  if (!user && !loading) { // If user failed to load entirely
+     // Display error only if there's a user-specific error or a general one not related to servers
+     const userError = error?.replace('Failed to load infrastructure data.', '').trim();
+     if (userError) {
+       return <div className="p-6 text-center text-red-600">{userError}</div>;
+     } else {
+       // If no specific user error, show generic message
+       return <div className="p-6 text-center">User not found or failed to load.</div>;
+     }
+  }
+  
+  // If user loaded but servers might have failed, we can still render UserDetailsContent
+  // UserDetailsContent will handle the potential server error message and loading state
 
   return (
-    <>
-      {/* Hero Section */}
-      <div className="relative min-h-[200px] overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat block dark:hidden transition-opacity duration-500"
-          style={{ backgroundImage: "url('/bg/header-light.svg')" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/0 via-[#f2f2f2]/30 to-[#f2f2f2] dark:hidden" />
-        
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden dark:block opacity-80 transition-opacity duration-500"
-          style={{ backgroundImage: "url('/bg/header-dark.svg')" }}
-        />
-
-        <div className="relative z-10 w-full">
-          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px] mx-auto py-4 lg:py-6">
-            <MarketingHeader />
-          </div>
-
-          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-6xl mx-auto text-center">
-            <div className="transition-all duration-300 ease-out">
-              <OffersTabs active={activeTab} onChange={setActiveTab} />
-            </div>
-            
-            <h1 className="mt-6 lg:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 
-                          font-haas font-medium leading-tight tracking-normal
-                          animate-fade-in animate-slide-in-from-bottom animate-duration-500">
-              {title}
-            </h1>
-            
-
-            <p className="mt-3 md:mt-4 mb-12 sm:mb-16 lg:mb-20 
-                          text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl
-                          leading-relaxed text-text-light dark:text-text-dark
-                          max-w-5xl mx-auto
-                          animate-fade-in animate-slide-in-from-bottom animate-duration-500 animate-delay-150">
-              {description}
-            </p>
-          </div>
-
-          {/* Steps Component - Only for Configure Server tab */}
-          {activeTab === 'configure' && (
-            <div className="px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px] mx-auto
-                          animate-fade-in animate-slide-in-from-bottom animate-duration-500 animate-delay-300">
-              <Steps currentStep={step} onStepClick={setStep} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="bg-primary-light dark:bg-primary-dark transition-colors duration-300">
-        <div className="w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-16 sm:pb-20 lg:pb-24">
-          <div className="transition-all duration-500 ease-out">
-            {activeTab === 'configure' && (
-              <div className="animate-in fade-in slide-in-from-bottom duration-500">
-                <ConfigureServer
-                  step={step}
-                  setStep={setStep}
-                />
-              </div>
-            )}
-            
-            {activeTab === 'tailored' && (
-              <div className="animate-in fade-in slide-in-from-bottom duration-500">
-                <TailoredSolution />
-              </div>
-            )}
-            
-            {activeTab === 'vps' && (
-              <div className="animate-in fade-in slide-in-from-bottom duration-500">
-                <VpsInfrastructurePlatform />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+    <UserDetailsContent 
+      user={user} 
+      infrastructureData={infrastructureData}
+      userId={userId}
+      paginationLinks={paginationLinks}
+      paginationMeta={paginationMeta}
+      onPageChange={handleServerPageChange}
+      loadingServers={loadingServers} 
+      serverError={error?.includes('infrastructure') ? error : null} // Pass only server-specific error
+      isLoggedIn={isUserLoggedIn()}
+    />
   );
 }
