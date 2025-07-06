@@ -104,8 +104,10 @@ const VPSServerPage = () => {
   // Fetch CPU stats with 5s interval
   useEffect(() => {
     let intervalId;
+    let isComponentMounted = true;
+    
     const fetchCpuStats = async () => {
-      if (!serverData) return;
+      if (!serverData || !isComponentMounted) return;
 
       // Only attempt to fetch stats if the server is running
       if (serverStatus !== 'running') {
@@ -118,7 +120,7 @@ const VPSServerPage = () => {
       try {
         const response = await ServerService.getStats(params.id, 'cpu');
         if (response.data && response.data.items) {
-          const items = response.data.items.slice(-24);
+          const items = response.data.items?.slice(-24) || [];
           const validItems = items.filter(item => item && typeof item.usage === 'number');
           setCpuStats(validItems);
           if (validItems.length > 0) {
@@ -138,6 +140,7 @@ const VPSServerPage = () => {
       intervalId = setInterval(fetchCpuStats, 5000);
     }
     return () => {
+      isComponentMounted = false;
       if (intervalId) clearInterval(intervalId);
     };
   }, [serverData, params.id, serverStatus]);
@@ -145,6 +148,7 @@ const VPSServerPage = () => {
   // Fetch Network stats with 5s interval
   useEffect(() => {
     let intervalId;
+    let isComponentMounted = true;
     const fetchNetworkStats = async () => {
       if (!serverData) return;
 
@@ -163,7 +167,7 @@ const VPSServerPage = () => {
       try {
         const response = await ServerService.getStats(params.id, 'network');
         if (response.data && response.data.items) {
-          const items = response.data.items.slice(-24);
+          const items = response.data.items?.slice(-24) || [];
           const validItems = items.filter(item => 
             item && typeof item.read === 'number' && typeof item.write === 'number'
           );
@@ -191,6 +195,7 @@ const VPSServerPage = () => {
       intervalId = setInterval(fetchNetworkStats, 5000);
     }
     return () => {
+      isComponentMounted = false;
       if (intervalId) clearInterval(intervalId);
     };
   }, [serverData, params.id, serverStatus]);
@@ -198,6 +203,7 @@ const VPSServerPage = () => {
   // Fetch Disk Activity stats with 5s interval
   useEffect(() => {
     let intervalId;
+    let isComponentMounted = true;
     const fetchDiskStats = async () => {
       if (!serverData) return;
 
@@ -216,7 +222,7 @@ const VPSServerPage = () => {
       try {
         const response = await ServerService.getStats(params.id, 'disk_activity');
         if (response.data && response.data.items) {
-          const items = response.data.items.slice(-24);
+          const items = response.data.items?.slice(-24) || [];
           const validItems = items.filter(item => 
             item && typeof item.read === 'number' && typeof item.write === 'number'
           );
@@ -244,6 +250,7 @@ const VPSServerPage = () => {
       intervalId = setInterval(fetchDiskStats, 5000);
     }
     return () => {
+      isComponentMounted = false;
       if (intervalId) clearInterval(intervalId);
     };
   }, [serverData, params.id, serverStatus]);

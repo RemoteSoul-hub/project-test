@@ -4,22 +4,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 class ApiService {
   static async request(endpoint, options = {}) {
-    
-    
-    
     // Use the token from options if provided, otherwise fall back to getAuthToken
     let token = options.token || getAuthToken();
     // Remove token from options to avoid duplicating it in the headers
     if (options.token) delete options.token;
-    
-    
-    
+
     // If no token in localStorage, check cookies
     if (!token && typeof document !== 'undefined') {
       const cookieMatch = document.cookie.match(/auth_token=([^;]+)/);
       if (cookieMatch) {
         token = cookieMatch[1];
-        
       }
     }
     
@@ -36,18 +30,13 @@ class ApiService {
       ...options,
       headers: {
         ...defaultOptions.headers,
-        ...options.headers,
+        ...(options.headers || {}),
       },
     };
-    
-    
-    
 
     try {
-      
       const response = await fetch(`${API_URL}${endpoint}`, finalOptions);
-      
-      
+
       // Check if the response has a content-type header and if it includes application/json
       const contentType = response.headers.get('content-type');
       const isJson = contentType && contentType.includes('application/json');
@@ -255,7 +244,6 @@ class ApiService {
 
   // New dedicated function for authenticated file downloads (handles token retrieval robustly)
   static async downloadExportFile(endpoint, params = {}, acceptHeader = '') {
-    
     let token = getAuthToken(); // Get token from localStorage first
 
     // Fallback to checking cookies if no token in localStorage
@@ -263,11 +251,8 @@ class ApiService {
       const cookieMatch = document.cookie.match(/auth_token=([^;]+)/);
       if (cookieMatch) {
         token = cookieMatch[1];
-        
       }
     }
-
-    
 
     if (!token) {
       console.error('downloadExportFile: No authentication token found. Aborting download.');
@@ -281,8 +266,7 @@ class ApiService {
 
     const queryString = new URLSearchParams(params).toString();
     // Ensure API_URL is prepended
-    const url = queryString ? `${API_URL}${endpoint}?${queryString}` : `${API_URL}${endpoint}`; 
-    
+    const url = queryString ? `${API_URL}${endpoint}?${queryString}` : `${API_URL}${endpoint}`;
 
     const options = {
       method: 'GET',
@@ -295,16 +279,10 @@ class ApiService {
     // Add accept header if provided
     if (acceptHeader) {
       options.headers['Accept'] = acceptHeader;
-      
-    } else {
-       
     }
-     
 
     try {
-      
       const response = await fetch(url, options);
-      
 
       if (!response.ok) {
         console.error('downloadExportFile: Download request failed with status:', response.status);
@@ -312,7 +290,6 @@ class ApiService {
         if (response.status === 401) {
           
           logout(); // Logout on authorization failure
-        }
         // Attempt to read error message if available
         let errorMessage = `Download failed with status ${response.status}`;
         try {
@@ -332,9 +309,9 @@ class ApiService {
           message: errorMessage,
         };
       }
+      }
 
-      
-      return await response.blob();
+      return response.blob();
     } catch (error) {
       console.error('downloadExportFile: Error during download request:', error);
       // Re-throw structured error or a generic one
@@ -351,13 +328,11 @@ class ApiService {
   static get(endpoint, params = {}, options = {}) {
     const queryString = new URLSearchParams(params).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
-    // Merge method with provided options, letting options override if needed
     return this.request(url, { method: 'GET', ...options });
   }
 
   static post(endpoint, data, options = {}) {
     return this.request(endpoint, {
-      method: 'POST',
       headers: { // Default headers
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -365,7 +340,8 @@ class ApiService {
       body: JSON.stringify(data),
       ...options, // Apply provided options, potentially overriding headers
       // Ensure headers from options are correctly merged (request method handles final merge)
-      headers: {
+      method: 'POST',
+      headers: { // Merge headers properly
         'Accept': 'application/json', // Keep default
         'Content-Type': 'application/json', // Keep default
         ...(options.headers || {}), // Apply custom headers from options
@@ -375,7 +351,6 @@ class ApiService {
 
   static put(endpoint, data, options = {}) {
     return this.request(endpoint, {
-      method: 'PUT',
       headers: { // Default headers
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -383,7 +358,8 @@ class ApiService {
       body: JSON.stringify(data),
       ...options, // Apply provided options
       headers: { // Ensure headers merge correctly
-        'Accept': 'application/json',
+        method: 'PUT',
+        'Accept': 'application/json', 
         'Content-Type': 'application/json',
         ...(options.headers || {}),
       }
@@ -392,7 +368,6 @@ class ApiService {
 
   static patch(endpoint, data, options = {}) {
     return this.request(endpoint, {
-      method: 'PATCH',
       headers: { // Default headers
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -400,7 +375,8 @@ class ApiService {
       body: JSON.stringify(data),
       ...options, // Apply provided options
       headers: { // Ensure headers merge correctly
-        'Accept': 'application/json',
+        method: 'PATCH',
+        'Accept': 'application/json', 
         'Content-Type': 'application/json',
         ...(options.headers || {}),
       }
@@ -408,8 +384,7 @@ class ApiService {
   }
 
   static async delete(endpoint, options = {}) {
-    // Merge method with provided options
-    return this.request(endpoint, { method: 'DELETE', ...options });
+    return this.request(endpoint, { method: 'DELETE', ...options }); 
   }
 
   static async getCurrentUser() {
@@ -417,7 +392,6 @@ class ApiService {
     
     try {
       // Try both endpoint formats
-      try {
         const response = await this.get('/user');
         return response;
       } catch (error) {
@@ -425,7 +399,6 @@ class ApiService {
         return response;
       }
     } catch (error) {
-      console.error('ApiService.getCurrentUser error:', error);
       throw error;
     }
   }
@@ -434,7 +407,6 @@ class ApiService {
     try {
       // Remove query parameters as per requirement
       // Ensure we're using the correct auth token
-      const token = options.token || (typeof window !== 'undefined' && localStorage.getItem('auth_token')) || 
                    (typeof window !== 'undefined' && localStorage.getItem('laravelApiToken'));
       
       // Update options with the token
@@ -442,7 +414,7 @@ class ApiService {
       
       // Make the API call without query parameters
       const response = await this.get('/partner-available-templates', {}, updatedOptions);
-      return response;
+      return response; 
     } catch (error) {
       // Log or handle error as needed, then re-throw
       console.error('Error in getPartnerTemplates:', error);
@@ -452,7 +424,6 @@ class ApiService {
 
   // Renamed and updated for sending test email previews
   static async sendTestEmailPreview(payload, options = {}) {
-    // Corresponds to POST /send-preview as per user feedback
     // Payload structure:
     // {
     //   "email": "recipient@example.com",
@@ -467,7 +438,6 @@ class ApiService {
 
   static async getUsersByServerType(serverType, params = {}) {
     // Add server type filter to params
-    const filteredParams = {
       ...params,
       'filter[server_type]': serverType
     };
@@ -476,11 +446,7 @@ class ApiService {
 
   static async getServerEmails(serverId, params = {}) {
     try {
-      const response = await this.get(`/servers/${serverId}/emails`, params);
-      
-      // Log raw response for debugging
-      
-      
+      const response = await this.get(`/servers/${serverId}/emails`, params); 
       // Return the response directly without further processing
       return response;
     } catch (error) {
@@ -490,11 +456,8 @@ class ApiService {
   }
 
   static async getUserServers(userId, params = {}) {
-    
     try {
-      const response = await this.get(`/users/${userId}/servers`, params);
-      
-      return response;
+      return this.get(`/users/${userId}/servers`, params);
     } catch (error) {
       console.error(`Error in getUserServers for userId ${userId}:`, error);
       throw error;
