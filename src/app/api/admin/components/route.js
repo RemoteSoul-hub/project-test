@@ -832,74 +832,7 @@ export async function POST(request) {
       const responseData = apiData.data || apiData;
 
       // === COMPREHENSIVE API DEBUGGING ===
-console.log('🔍 === FULL DATAPACKET API RESPONSE DEBUG ===');
-console.log('Raw API Response Keys:', Object.keys(apiData));
-console.log('Response Data Keys:', Object.keys(responseData));
-
-// Log the complete raw response (be careful, this might be huge)
-console.log('📦 Complete Raw API Response:', JSON.stringify(apiData, null, 2));
-
-// Log detailed breakdown
-if (responseData.components) {
-  console.log('🧩 COMPONENTS SECTION:');
-  console.log('Components Keys:', Object.keys(responseData.components));
-  
-  if (responseData.components.cpus) {
-    console.log('💻 CPUs Sample (first 2):', JSON.stringify(responseData.components.cpus.slice(0, 2), null, 2));
-    console.log('💻 Total CPUs count:', responseData.components.cpus.length);
-  }
-  
-  if (responseData.components.storage) {
-    console.log('💾 Storage Sample (first 2):', JSON.stringify(responseData.components.storage.slice(0, 2), null, 2));
-    console.log('💾 Total Storage count:', responseData.components.storage.length);
-  }
-  
-  if (responseData.components.memory) {
-    console.log('🧠 Memory Sample (first 2):', JSON.stringify(responseData.components.memory.slice(0, 2), null, 2));
-    console.log('🧠 Total Memory count:', responseData.components.memory.length);
-  }
-  
-  if (responseData.components.operatingSystems) {
-    console.log('🖥️ Operating Systems Sample (first 5):', JSON.stringify(responseData.components.operatingSystems.slice(0, 5), null, 2));
-    console.log('🖥️ Total Operating Systems count:', responseData.components.operatingSystems.length);
-  } else {
-    console.log('🖥️ No operatingSystems found in components');
-  }
-}
-
-if (responseData.provisioningConfigurations) {
-  console.log('⚙️ PROVISIONING CONFIGURATIONS SECTION:');
-  console.log('⚙️ Total Configurations:', responseData.provisioningConfigurations.length);
-  
-  // Sample of first few configurations
-  const sampleConfigs = responseData.provisioningConfigurations.slice(0, 3);
-  console.log('⚙️ Sample Configurations (first 3):');
-  sampleConfigs.forEach((config, index) => {
-    console.log(`Config ${index + 1}:`, JSON.stringify(config, null, 2));
-  });
-  
-  // Check what OS data is in configurations
-  const configsWithOS = responseData.provisioningConfigurations.filter(config => 
-    config.operatingSystem || config.operatingSystems || config.os
-  );
-  console.log('🖥️ Configurations with OS data:', configsWithOS.length);
-  if (configsWithOS.length > 0) {
-    console.log('🖥️ Sample OS in configurations:', JSON.stringify(configsWithOS.slice(0, 2), null, 2));
-  }
-}
-
-// Check for any other interesting fields
-const otherKeys = Object.keys(responseData).filter(key => 
-  !['components', 'provisioningConfigurations'].includes(key)
-);
-if (otherKeys.length > 0) {
-  console.log('🔍 Other fields in response:', otherKeys);
-  otherKeys.forEach(key => {
-    console.log(`🔍 ${key}:`, responseData[key]);
-  });
-}
-
-console.log('🔍 === END DATAPACKET API RESPONSE DEBUG ===');
+// Removed extensive debug logging to improve performance
 // === END COMPREHENSIVE DEBUGGING ===
 
       // Process components based on which data we have

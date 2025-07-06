@@ -1,6 +1,6 @@
 // ===== LOGGING CONFIGURATION =====
 const LOGGING_CONFIG = {
-  enabled: process.env.DATAPACKET_DEBUG === 'true' || process.env.NODE_ENV === 'development',
+  enabled: process.env.DATAPACKET_DEBUG === 'true',
   levels: {
     api: process.env.DATAPACKET_LOG_API !== 'false', 
     transform: process.env.DATAPACKET_LOG_TRANSFORM !== 'false', 
@@ -13,18 +13,24 @@ const LOGGING_CONFIG = {
 // Configurable logger
 const logger = {
   api: (message, data = null) => {
-    if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.api) {
+    if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.api && data) {
       console.log(`📡 [DATAPACKET API] ${message}`, data ? (LOGGING_CONFIG.levels.detailed ? JSON.stringify(data, null, 2) : data) : '');
+    } else if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.api) {
+      console.log(`📡 [DATAPACKET API] ${message}`);
     }
   },
   transform: (message, data = null) => {
-    if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.transform) {
+    if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.transform && data) {
       console.log(`🔄 [TRANSFORM] ${message}`, data ? (LOGGING_CONFIG.levels.detailed ? JSON.stringify(data, null, 2) : data) : '');
+    } else if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.transform) {
+      console.log(`🔄 [TRANSFORM] ${message}`);
     }
   },
   route: (message, data = null) => {
-    if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.route) {
+    if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.route && data) {
       console.log(`🎯 [API ROUTE] ${message}`, data ? (LOGGING_CONFIG.levels.detailed ? JSON.stringify(data, null, 2) : data) : '');
+    } else if (LOGGING_CONFIG.enabled && LOGGING_CONFIG.levels.route) {
+      console.log(`🎯 [API ROUTE] ${message}`);
     }
   },
   error: (message, error = null) => {

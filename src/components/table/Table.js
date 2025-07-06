@@ -145,12 +145,6 @@ export default function Table({
               // Data rows - use filteredData if provided, otherwise use original data
               (() => {
                 const displayData = filteredData || data;
-                console.log('Table rendering with data:', { 
-                  dataLength: data?.length, 
-                  filteredDataLength: filteredData?.length,
-                  usingFilteredData: !!filteredData,
-                  displayDataLength: displayData?.length
-                });
                 return displayData;
               })().map((row, rowIndex) => (
                   <React.Fragment key={`row-${rowIndex}`}>

@@ -157,11 +157,7 @@ const VPSProductsPage = () => {
   // Fetch servers from API
   const fetchServers = async () => {
     try {
-      // Only show loading state on first page load or search/filter changes, not on pagination
-      const isPaginationOnly = !searchTerm && Object.keys(filters).length === 0;
-      if (!isPaginationOnly || serverData.length === 0) {
-        setLoading(true);
-      }
+      setLoading(true);
       setError(null);
       
       // Check if API URL is configured
@@ -170,9 +166,8 @@ const VPSProductsPage = () => {
       }
 
       const queryParams = {
-        'filter[type]': 'virtual',
-        'sort': sortField, // Use sortField directly
-        'direction': sortDirection, // Add direction parameter
+        'filter[type]': 'virtual', 
+        'sort': `${sortDirection === 'desc' ? '-' : ''}${sortField}`,
         page: currentPage,
         per_page: pageSize
       };
@@ -191,9 +186,7 @@ const VPSProductsPage = () => {
 
       
       const response = await ApiService.get('/servers', queryParams);
-      
-      
-      
+
       if (!response || !response.data) {
         throw new Error('Invalid API response format');
       }
@@ -242,22 +235,17 @@ const VPSProductsPage = () => {
   // Fetch status for each server
   const fetchServerStatuses = async () => {
     if (serverData.length === 0) return;
-    
-    
-    
+
     // Create a copy of the current server data
     const updatedServerData = [...serverData];
     
     // Create an array of promises for fetching status
     const statusPromises = serverData.map(async (server, index) => {
       try {
-        
         const response = await ServerService.getStatus(server.id);
-        
-        
+
         // Update the status in our copy
         if (response && response.data && response.data.status) {
-          
           updatedServerData[index] = {
             ...updatedServerData[index],
             status: response.data.status
@@ -320,10 +308,6 @@ const VPSProductsPage = () => {
   // Fetch stats data
   const fetchStatsData = async () => {
     try {
-      // Check if API URL is configured
-      if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
-        throw new Error('API base URL is not configured for stats');
-      }
       const response = await ApiService.get('/stats');
       if (response && response.data) {
         setServersCreatedToday(response.data.today_created || 0);
