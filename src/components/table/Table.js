@@ -1,251 +1,137 @@
-"use client";
-import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Pencil, FileText, Monitor, Mail, ChevronDown, ChevronRight, User, Trash2, Eye } from 'lucide-react';
-import Link from 'next/link';
-import styles from '@/styles/table.module.css';
+'use client'
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import UserDetailsContent from '@/components/user/UserDetailsContent';
+import ApiService from '@/services/apiService';
 
-/**
- * Responsive Table Component
- * 
- * This component renders a responsive table that works well on all screen sizes.
- * On mobile, it provides horizontal scrolling and optimized display of content.
- * 
- * @param {Object} props - Component props
- * @param {Array} props.columns - Array of column definitions
- * @param {Array} props.data - Array of data rows
- * @param {Array} props.dropdownActions - Array of actions for the dropdown menu
- * @param {boolean} props.isLoading - Optional loading state
- * @param {boolean} props.loading - Alternative prop name for loading state
- * @param {boolean} props.expandable - Whether rows can be expanded
- * @param {Function} props.expandedContent - Function to render expanded content (row) => ReactNode
- */
-export default function Table({
-  columns,
-  data,
-  dropdownActions,
-  isLoading = false,
-  loading = false,
-  expandable = false,
-  expandedContent,
-  filteredData = null // Optional pre-filtered data
-}) {
-  // Use either isLoading or loading prop
-  const isTableLoading = isLoading || loading;
+export default function UserDetailsPage() {
+  const params = useParams();
+  const userId = params.id;
   
-  const [dropdownOpen, setDropdownOpen] = useState(null);
-  const [expandedRows, setExpandedRows] = useState({});
-  const dropdownRefs = useRef([]);
+  const [user, setUser] = useState(null);
+  const [infrastructureData, setInfrastructureData] = useState([]);
+  const [paginationLinks, setPaginationLinks] = useState(null); // Added for pagination
+  const [paginationMeta, setPaginationMeta] = useState(null);   // Added for pagination
+  const [loading, setLoading] = useState(true); // Overall page loading
+  const [loadingServers, setLoadingServers] = useState(false); // Specific loading for servers list
+  const [error, setError] = useState(null); // Combined error state
 
-  // Close dropdowns when clicking outside
+  // Function to fetch user details
+  async function fetchUserDetails() {
+    try {
+      const userData = await ApiService.get(`/users/${userId}`);
+      const userDataFromResponse = userData.data;
+      const formattedUser = {
+        id: userDataFromResponse.id,
+        fullName: userDataFromResponse.name,
+        email: userDataFromResponse.email,
+        phoneNumber: userDataFromResponse.phone_number || '',
+        language: 'English', // Default value since we're ignoring language
+        username: userDataFromResponse.username || '',
+        userCreated: formatDate(userDataFromResponse.created_at), // Use formatDate defined below
+        roles: userDataFromResponse.roles || [],
+        login_username: userDataFromResponse.login_username || '', // Add the login_username field
+      };
+      
+      
+      setUser(formattedUser);
+      // Clear user-specific part of error if successful
+      setError(prev => prev?.replace('Failed to load user details.', '').trim() || null);
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+      setError(prev => prev ? `${prev} Failed to load user details.` : 'Failed to load user details.');
+      setUser(null); // Ensure user is null on error
+    }
+  }
+
+  // Function to fetch user servers with pagination support
+  async function fetchUserServers(page = 1) {
+    setLoadingServers(true);
+    // Clear only server-specific errors before fetching
+    setError(prev => prev?.replace('Failed to load infrastructure data.', '').trim() || null); 
+    try {
+      const serversResponse = await ApiService.getUserServers(userId, { page });
+      
+      setInfrastructureData(serversResponse.data || []);
+      setPaginationLinks(serversResponse.links);
+      setPaginationMeta(serversResponse.meta);
+    } catch (serverError) {
+      console.error(`Error fetching user servers (page ${page}):`, serverError);
+      setError(prevError => prevError ? `${prevError} Failed to load infrastructure data.` : 'Failed to load infrastructure data.');
+      setInfrastructureData([]); // Set to empty array on error
+      setPaginationLinks(null);
+      setPaginationMeta(null);
+    } finally {
+      setLoadingServers(false);
+    }
+  }
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownOpen !== null &&
-        dropdownRefs.current[dropdownOpen] &&
-        !dropdownRefs.current[dropdownOpen].contains(event.target)
-      ) {
-        setDropdownOpen(null);
-      }
-    };
+    async function initialLoad() {
+      if (!userId) return;
+      setLoading(true); // Start overall loading
+      setError(null); // Reset errors on new load
+      await fetchUserDetails(); // Fetch user details first
+      await fetchUserServers(1); // Then fetch the first page of servers
+      setLoading(false); // End overall loading
+    }
+    initialLoad();
+  }, [userId]); // Rerun effect only if userId changes
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownOpen]);
-
-  // Toggle expanded row
-  const toggleRowExpansion = (rowIndex) => {
-    setExpandedRows(prev => ({
-      ...prev,
-      [rowIndex]: !prev[rowIndex]
-    }));
-  };
-
-  // Styling for permissions
-  const getPermissionStyles = (permission) => {
-    switch (permission) {
-      case 'Administrator':
-        return 'bg-blue-100 text-blue-600';
-      case 'Read & Write':
-        return 'bg-green-100 text-green-600';
-      case 'Read Only':
-        return 'bg-gray-100 text-gray-600';
-      default:
-        return '';
+  // Handle page changes for server list
+  const handleServerPageChange = (newPage) => {
+    // Check if newPage is valid based on meta
+    if (newPage >= 1 && (!paginationMeta || newPage <= paginationMeta.last_page)) {
+      fetchUserServers(newPage);
+    } else {
+      console.warn(`Attempted to navigate to invalid page: ${newPage}`);
     }
   };
-
-  // Render skeleton rows for loading state
-  const renderSkeletonRows = () => {
-    return Array(5).fill(0).map((_, index) => (
-      <tr key={`skeleton-${index}`} className="animate-pulse">
-        {expandable && (
-          <td className="p-2 md:p-3 border-b w-10 text-center">
-            <div className="h-5 w-5 bg-gray-200 rounded-full mx-auto"></div>
-          </td>
-        )}
-        {columns.map((col, colIndex) => (
-          <td 
-            key={`skeleton-cell-${colIndex}`} 
-            className={`p-2 md:p-3 border-b ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}
-          >
-            <div className="flex items-center space-x-3">
-              {colIndex === 0 && (
-                <div className="h-10 w-10 rounded-full bg-gray-200"></div>
-              )}
-              <div className={`h-4 bg-gray-200 rounded ${
-                colIndex === 0 ? 'w-24' : 
-                colIndex === 1 ? 'w-32' : 
-                colIndex === 2 ? 'w-20' : 
-                'w-16'
-              }`}></div>
-            </div>
-          </td>
-        ))}
-        {dropdownActions && (
-          <td className="p-2 md:p-3 border-b text-right">
-            <div className="h-8 w-8 bg-gray-200 rounded-full ml-auto"></div>
-          </td>
-        )}
-      </tr>
-    ));
+  
+  // Helper function to format date (ensure it's defined before use)
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
   };
+  
+  if (loading) {
+    return <div className="p-6 text-center">Loading user data...</div>;
+  }
+  
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+  }
+  
+  if (!user) {
+    return <div className="p-6 text-center">User not found</div>;
+  }
 
-  // Render the table structure with appropriate content
+  // Separate check for user data error vs server data error
+  if (!user && !loading) { // If user failed to load entirely
+     // Display error only if there's a user-specific error or a general one not related to servers
+     const userError = error?.replace('Failed to load infrastructure data.', '').trim();
+     if (userError) {
+       return <div className="p-6 text-center text-red-600">{userError}</div>;
+     } else {
+       // If no specific user error, show generic message
+       return <div className="p-6 text-center">User not found or failed to load.</div>;
+     }
+  }
+  
+  // If user loaded but servers might have failed, we can still render UserDetailsContent
+  // UserDetailsContent will handle the potential server error message and loading state
+
   return (
-    <div className={styles.tableContainer}>
-      <div className={`overflow-x-auto ${styles.contentPreserveHeight}`}>
-        <table className="min-w-full bg-white border-collapse">
-          <thead>
-            <tr className="bg-gray-50">
-              {expandable && (
-                <th className="p-2 md:p-3 border-b w-10 text-center"></th>
-              )}
-              {columns.map((col, index) => (
-                <th 
-                  key={index} 
-                  className={`p-2 md:p-3 border-b text-left text-gray-600 font-medium ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}
-                >
-                  {col.headerCell ? col.headerCell() : col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {isTableLoading ? (
-              // Skeleton loading state
-              renderSkeletonRows()
-            ) : !data || data.length === 0 ? (
-              // No data available message
-              <tr>
-                <td colSpan={columns.length + (dropdownActions ? 1 : 0) + (expandable ? 1 : 0)} className="p-6 text-center text-gray-500">
-                  No data available
-                </td>
-              </tr>
-            ) : (
-              // Data rows - use filteredData if provided, otherwise use original data
-              (() => {
-                const displayData = filteredData || data;
-                return displayData;
-              })().map((row, rowIndex) => (
-                  <React.Fragment key={`row-${rowIndex}`}>
-                  <tr 
-                    className={`hover:bg-gray-50 ${expandable ? 'cursor-pointer' : ''}`}
-                    onClick={expandable ? () => toggleRowExpansion(rowIndex) : undefined}
-                  >
-                    {expandable && (
-                      <td className="p-2 md:p-3 border-b w-10 text-center">
-                        {expandedRows[rowIndex] ? (
-                          <ChevronDown size={18} className="text-gray-500" />
-                        ) : (
-                          <ChevronRight size={18} className="text-gray-500" />
-                        )}
-                      </td>
-                    )}
-                    {columns.map((col) => (
-                      <td 
-                        key={col.accessor} 
-                        className={`p-2 md:p-3 border-b ${col.className || ''} ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}
-                      >
-                        {col.cell ? (
-                          col.cell(row[col.accessor], row, rowIndex)
-                        ) : (
-                          <div className="truncate max-w-[150px] sm:max-w-none">
-                            {row[col.accessor]}
-                          </div>
-                        )}
-                      </td>
-                    ))}
-                    {dropdownActions && (
-                      <td 
-                        className="p-2 md:p-3 border-b text-right relative"
-                        onClick={(e) => {
-                          // Stop propagation to prevent row expansion when clicking dropdown
-                          e.stopPropagation();
-                        }}
-                      >
-                        <button
-                          className="p-2 rounded-full hover:bg-gray-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDropdownOpen(dropdownOpen === rowIndex ? null : rowIndex);
-                            // Store the button reference for positioning
-                            dropdownRefs.current[rowIndex] = e.currentTarget;
-                          }}
-                          aria-label="More options"
-                        >
-                          <MoreVertical size={18} />
-                        </button>
-                        {dropdownOpen === rowIndex && (
-                          <div
-                            className="fixed w-48 bg-white rounded-md shadow-lg overflow-visible"
-                            style={{
-                              top: dropdownRefs.current[rowIndex]?.getBoundingClientRect().bottom + window.scrollY + 5 || 0,
-                              left: Math.max(10, dropdownRefs.current[rowIndex]?.getBoundingClientRect().left - 160) || 0,
-                              zIndex: 99999, // Extremely high z-index to ensure it's above everything
-                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                            }}
-                          >
-                            <ul className="py-1">
-                              {dropdownActions.map((action, index) => (
-                                <li 
-                                  key={index} 
-                                  className={`px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center ${action.className || ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    action.onClick(row.id || rowIndex, row);
-                                    setDropdownOpen(null);
-                                  }}
-                                >
-                                  {action.icon}
-                                  <span className="ml-2">{action.label}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                  {expandable && expandedRows[rowIndex] && (
-                    <tr key={`expanded-${rowIndex}`}>
-                      <td 
-                        colSpan={columns.length + (dropdownActions ? 1 : 0) + 1} 
-                        className="p-0 border-b"
-                      >
-                        <div className="p-2 md:p-4 bg-gray-50">
-                          {expandedContent ? expandedContent(row) : (
-                            <div className="text-gray-500">No expanded content provided</div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <UserDetailsContent 
+      user={user} 
+      infrastructureData={infrastructureData}
+      userId={userId}
+      paginationLinks={paginationLinks}
+      paginationMeta={paginationMeta}
+      onPageChange={handleServerPageChange}
+      loadingServers={loadingServers} 
+      serverError={error?.includes('infrastructure') ? error : null} // Pass only server-specific error
+    />
   );
 }

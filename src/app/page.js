@@ -269,7 +269,7 @@ export default function Home() {
   // Fetch server statuses
   const fetchServerStatuses = async (servers, setServerData) => {
     if (!servers || servers.length === 0) return;
-    
+
     // Create a copy of the current server data
     const updatedServerData = [...servers];
     
@@ -277,6 +277,7 @@ export default function Home() {
     const statusPromises = servers.map(async (server, index) => {
       try {
         const response = await ServerService.getStatus(server.id);
+
         // Update the status in our copy
         if (response && response.data && response.data.status) {
           updatedServerData[index] = {

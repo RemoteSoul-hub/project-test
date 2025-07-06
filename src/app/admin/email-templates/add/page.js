@@ -47,17 +47,41 @@ export default function AddEmailTemplatePage() {
 
   // Update preview content when relevant data changes
   useEffect(() => {
-    if (activeMainTab === 'Default Content (EN)') {
-      setPreviewingContent({ lang: DEFAULT_LANGUAGE_CODE, subject: formData.subject, body: formData.body });
-    } else if (activeMainTab === 'Translations' && activeLanguageTab) {
-      const trans = formData.translations.find(t => t.language === activeLanguageTab);
-      if (trans) {
-        setPreviewingContent({ lang: trans.language, subject: trans.subject, body: trans.body });
+    // Determine current content based on active tab and language
+    const getContentForPreview = () => {
+      if (activeMainTab === 'Default Content (EN)') {
+        return {
+          lang: DEFAULT_LANGUAGE_CODE,
+          subject: formData.subject,
+          body: formData.body
+        };
+      } 
+      
+      if (activeMainTab === 'Translations' && activeLanguageTab) {
+        const trans = formData.translations.find(t => t.language === activeLanguageTab);
+        if (trans) {
+          return {
+            lang: trans.language,
+            subject: trans.subject,
+            body: trans.body
+          };
+        }
       }
-    }
-    // If header/footer changes, update preview too, keeping current lang/subject/body
-    setPreviewingContent(prev => ({...prev, header: formData.header, footer: formData.footer}));
-
+      
+      // Default fallback
+      return {
+        lang: DEFAULT_LANGUAGE_CODE,
+        subject: formData.subject,
+        body: formData.body
+      };
+    };
+    
+    const content = getContentForPreview();
+    setPreviewingContent({
+      ...content,
+      header: formData.header,
+      footer: formData.footer
+    });
   }, [formData.subject, formData.body, formData.translations, activeMainTab, activeLanguageTab, formData.header, formData.footer]);
 
 

@@ -30,6 +30,11 @@ export default function AdminUsersPage() {
   // const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Add if delete needed
   // const [userToDelete, setUserToDelete] = useState(null); // Add if delete needed
 
+  // Debug effect - only logs, no state updates
+  useEffect(() => {
+    // Removed debug logging
+  }, [session, status]); // Only run when session or status changes
+
   // Initial data load
   useEffect(() => {
     const token = session?.laravelApiToken;

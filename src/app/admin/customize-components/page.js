@@ -52,43 +52,18 @@ const [resetting, setResetting] = useState(false);
 
   // Debug effect - only logs, no state updates
   useEffect(() => {
-    const token = session?.accessToken || getAuthToken();
-    console.log('🔍 AUTH DEBUG:', {
-      sessionStatus: status,
-      hasSession: !!session,
-      sessionData: session,
-      hasToken: !!token,
-      tokenPreview: token ? `${String(token).substring(0, 20)}...` : 'NO TOKEN',
-      authTokenFromService: !!getAuthToken(),
-      accessToken: !!session?.accessToken,
-      shouldFetch: !!(token && status === "authenticated"),
-      timestamp: new Date().toISOString()
-    });
+    // Removed debug logging
   }, [session, status]); // Only run when session or status changes
 
   // Modified fetch effect - using the correct token field
-  useEffect(() => {
-    console.log('📍 Fetch useEffect triggered');
-    console.log('- Status:', status);
-    console.log('- Session:', session);
     
     // Use accessToken instead of laravelApiToken
-    const token = session?.accessToken || getAuthToken();
-    console.log('- Token exists:', !!token);
-    console.log('- Token preview:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-    console.log('- Condition check:', { 
-      hasToken: !!token, 
-      status, 
-      isAuthenticated: status === "authenticated",
-      willFetch: !!(token && status === "authenticated")
     });
 
     // If just checking for token without status requirement
-    if (token) {
       console.log('✅ Token found, fetching components...');
       fetchComponents(token);
     } else {
-      console.log('🚫 No token available');
       setLoading(false);
     }
   }, [session, status, currentPage, searchTerm, selectedType, selectedStatus, selectedAvailability, sortField, sortDirection]);

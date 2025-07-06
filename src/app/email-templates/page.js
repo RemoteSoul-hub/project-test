@@ -48,28 +48,34 @@ export default function EmailsPage() {
 
   const getDisplayContent = (template, pId, language, partnerTranslations) => {
     if (!template || pId === null) {
-        return { subject: template?.subject || '', body: template?.body || '', source: 'base_or_no_template', partnerTranslationRecord: null };
+      return { subject: template?.subject || '', body: template?.body || '', source: 'base_or_no_template', partnerTranslationRecord: null };
     }
+    
     const specificPartnerTranslation = partnerTranslations.find(ptt => 
-        ptt.email_partner_template?.email_template_id === template.id &&
-        ptt.email_partner_template?.partner_id === pId &&
-        ptt.language === language
+      ptt.email_partner_template?.email_template_id === template.id &&
+      ptt.email_partner_template?.partner_id === pId &&
+      ptt.language === language
     );
+    
     if (specificPartnerTranslation) {
       return { subject: specificPartnerTranslation.subject, body: specificPartnerTranslation.body, source: 'partner_translation', partnerTranslationRecord: specificPartnerTranslation };
     }
+    
     const partnerLangOverride = template.partner_templates?.find(
       pt => pt.partner_id === pId && pt.language === language
     );
+    
     if (partnerLangOverride) {
       return { subject: partnerLangOverride.subject, body: partnerLangOverride.body, source: 'partner_override', partnerTranslationRecord: null };
     }
+    
     if (language !== template.language) {
       const translation = template.translations?.find(t => t.language === language);
       if (translation) {
         return { subject: translation.subject, body: translation.body, source: 'standard_translation', partnerTranslationRecord: null };
       }
     }
+    
     return { subject: template.subject, body: template.body, source: 'base_template', partnerTranslationRecord: null };
   };
   

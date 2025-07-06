@@ -115,38 +115,42 @@ export default function EditEmailTemplatePage() {
 
   // Update preview content when relevant data changes
  useEffect(() => {
-    let currentSubject = '';
-    let currentBody = '';
-    let currentLang = DEFAULT_LANGUAGE_CODE;
-
-    if (activeMainTab === 'Default Content (EN)') {
-      currentSubject = formData.subject;
-      currentBody = formData.body;
-      currentLang = DEFAULT_LANGUAGE_CODE;
-    } else if (activeMainTab === 'Translations' && activeLanguageTab) {
-      const trans = formData.translations.find(t => t.language === activeLanguageTab);
-      if (trans) {
-        currentSubject = trans.subject;
-        currentBody = trans.body;
-        currentLang = trans.language;
-      } else { // Fallback if activeLanguageTab is somehow invalid
-        currentSubject = formData.subject; // Default to EN
-        currentBody = formData.body;
-      }
-    } else { // Fallback for other tabs like Header, Footer, etc.
-        currentSubject = formData.subject; // Default to EN
-        currentBody = formData.body;
-    }
-    
-    setPreviewingContent({ 
-        lang: currentLang, 
-        subject: currentSubject, 
-        body: currentBody,
-        header: formData.header,
-        footer: formData.footer 
-    });
-
-  }, [formData, activeMainTab, activeLanguageTab]);
+   // Determine current content based on active tab and language
+   const getContentForPreview = () => {
+     if (activeMainTab === 'Default Content (EN)') {
+       return {
+         lang: DEFAULT_LANGUAGE_CODE,
+         subject: formData.subject,
+         body: formData.body
+       };
+     } 
+     
+     if (activeMainTab === 'Translations' && activeLanguageTab) {
+       const trans = formData.translations.find(t => t.language === activeLanguageTab);
+       if (trans) {
+         return {
+           lang: trans.language,
+           subject: trans.subject,
+           body: trans.body
+         };
+       }
+     }
+     
+     // Default fallback
+     return {
+       lang: DEFAULT_LANGUAGE_CODE,
+       subject: formData.subject,
+       body: formData.body
+     };
+   };
+   
+   const content = getContentForPreview();
+   setPreviewingContent({
+     ...content,
+     header: formData.header,
+     footer: formData.footer
+   });
+ }, [formData, activeMainTab, activeLanguageTab]);
 
 
   const currentEditingAdditionalTranslation = useMemo(() => {
