@@ -46,3 +46,4 @@ _next/
 dist/
 *.log
 node_modules/
+.env
