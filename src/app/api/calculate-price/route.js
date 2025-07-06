@@ -5,6 +5,7 @@ import UserDetailsContent from '@/components/user/UserDetailsContent';
 import ApiService from '@/services/apiService';
 
 export default function UserDetailsPage() {
+  const params = useParams();
       'SELECT id, name, type, base_price, custom_price, is_enabled FROM components WHERE id IN (?, ?, ?, ?) AND is_enabled = true',
   const userId = params.id;
   
@@ -118,13 +119,16 @@ export default function UserDetailsPage() {
      } else {
        // If no specific user error, show generic message
        return <div className="p-6 text-center">User not found or failed to load.</div>;
+     }
       total += price;
   }
   
   // If user loaded but servers might have failed, we can still render UserDetailsContent
   // UserDetailsContent will handle the potential server error message and loading state
+  return {
       total: parseFloat(total.toFixed(2)),
       currency: 'USD'
+  };
   return (
     <UserDetailsContent 
       user={user} 
