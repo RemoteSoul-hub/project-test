@@ -90,7 +90,8 @@
  
    return (
      <div className="space-y-2">
-       <label className="block text-sm font-medium text-gray-700 mb-1">
+       <label className="block text-sm font-medium text-gray-700 mb        }
+-1">
          {label} {optional && <span className="text-gray-450 font-normal">(optional)</span>}
        </label>
        <div className="relative">
