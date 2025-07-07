@@ -78,7 +78,8 @@ const ValidatedInput = ({
   const handleChange = useCallback((e) => {
     let inputValue = e.target.value;
     if (field === 'zipCode') {
-      inputValue = inputValue.replace(/\D/g, '');
+      // Allow alphanumeric characters for international postal codes
+      inputValue = inputValue.replace(/[^a-zA-Z0-9\s-]/g, '');
     }
     onChange(field, inputValue);
   }, [field, onChange]);
