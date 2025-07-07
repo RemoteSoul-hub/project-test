@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { signup, setAuthToken, setUser } from '@/services/AuthService';
 
 // Validation utilities
 const validators = {
@@ -30,6 +31,15 @@ const validators = {
     return password.length >= 8
       ? { isValid: true, message: 'Password accepted' }
       : { isValid: false, message: 'Password must be at least 8 characters' };
+  },
+  
+  confirmPassword: (confirmPassword, password) => {
+    if (!confirmPassword) {
+      return { isValid: false, message: 'Please confirm your password' };
+    }
+    return confirmPassword === password
+      ? { isValid: true, message: 'Passwords match' }
+      : { isValid: false, message: 'Passwords do not match' };
   },
 
   zipCode: (zipCode) => {
@@ -129,6 +139,7 @@ export default function RegistrationForm({ onComplete, configuration }) {
     username: '',
     email: '',
     password: '',
+    confirmPassword: '',
     firstName: '',
     lastName: '',
     companyName: '',
@@ -141,6 +152,7 @@ export default function RegistrationForm({ onComplete, configuration }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [touchedFields, setTouchedFields] = useState({});
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   
   const validationResults = useMemo(() => {
     const results = {};
@@ -164,6 +176,9 @@ export default function RegistrationForm({ onComplete, configuration }) {
         case 'password':
           results[field] = validators.password(value);
           break;
+        case 'confirmPassword':
+          results[field] = validators.confirmPassword(value, formData.password);
+          break;
         case 'zipCode':
           results[field] = validators.zipCode(value);
           break;
@@ -183,7 +198,7 @@ export default function RegistrationForm({ onComplete, configuration }) {
   }, [formData, touchedFields]);
 
   const isFormValid = useMemo(() => {
-    const requiredFields = ['firstName', 'lastName', 'email', 'streetAddress', 'city', 'zipCode', 'country', 'password'];
+    const requiredFields = ['firstName', 'lastName', 'email', 'streetAddress', 'city', 'zipCode', 'country', 'password', 'confirmPassword'];
     return requiredFields.every(field => {
       const validation = validationResults[field];
       return validation.isValid === true || 
@@ -195,6 +210,11 @@ export default function RegistrationForm({ onComplete, configuration }) {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) {
       setError('');
+    }
+    
+    // Special handling for password field to validate confirmPassword
+    if (field === 'password' && touchedFields.confirmPassword) {
+      setTouchedFields(prev => ({ ...prev, confirmPassword: true }));
     }
   }, [error]);
 
@@ -217,14 +237,29 @@ export default function RegistrationForm({ onComplete, configuration }) {
     setError('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Register the user
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      const response = await signup(fullName, formData.email, formData.password);
       
-      // Normally you would register the user here
-      // const response = await registerUser(formData);
-      
-      // For now, we'll just simulate success
-      onComplete();
+      if (response.status === 'success') {
+        // Set auth token and user data
+        if (response.data?.token) {
+          setAuthToken(response.data.token);
+        }
+        if (response.data?.user) {
+          setUser(response.data.user);
+        }
+        
+        // Show success message
+        setRegistrationSuccess(true);
+        
+        // Complete registration after showing success message
+        setTimeout(() => {
+          onComplete();
+        }, 2000);
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       setError(err.message || 'Failed to register. Please try again.');
@@ -236,6 +271,16 @@ export default function RegistrationForm({ onComplete, configuration }) {
   return (
     <div className="max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">Create Your Account</h2>
+      
+      {registrationSuccess && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
+          <CheckCircle className="text-green-500 mr-2" size={20} />
+          <div>
+            <p className="text-green-700 font-medium">Registration successful!</p>
+            <p className="text-green-600 text-sm">Your account has been created. Redirecting to payment...</p>
+          </div>
+        </div>
+      )}
       
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
@@ -367,19 +412,41 @@ export default function RegistrationForm({ onComplete, configuration }) {
             validation={validationResults.password}
             disabled={loading}
           />
+          
+          <ValidatedInput
+            field="confirmPassword"
+            type="password"
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            validation={validationResults.confirmPassword}
+            disabled={loading}
+          />
         </div>
         
         <div className="flex flex-col space-y-4">
           <button
             type="submit"
             disabled={!isFormValid || loading}
-            className={`w-full py-4 px-4 rounded-lg font-medium transition-all duration-200 ${
+            className={`w-full py-4 px-4 rounded-lg font-medium transition-all duration-200 flex justify-center items-center ${
               isFormValid && !loading
                 ? "bg-blue-600 hover:bg-blue-700 text-white" 
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            {loading ? 'Creating Account...' : 'Create Account & Continue'}
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating Account...
+              </>
+            ) : (
+              'Create Account & Continue'
+            )}
           </button>
         </div>
         
@@ -387,7 +454,7 @@ export default function RegistrationForm({ onComplete, configuration }) {
           <p className="text-sm text-gray-500 mb-2">Already have an account?</p>
           <button
             type="button"
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/login?callbackUrl=/control-panel')}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
             Sign in instead

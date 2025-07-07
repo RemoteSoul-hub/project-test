@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useAuth } from '@/components/providers/AuthProvider';
 import ServerConfigurationStep from './ConfigureServer/ServerConfigurationStep';
 import RegistrationForm from './ConfigureServer/RegistrationForm';
 import PaymentStep from './ConfigureServer/PaymentStep';
@@ -12,6 +13,7 @@ export default function ConfigureServer({
   isCompact = false
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const { user } = useAuth();
   const [step, setStep] = useState(initialStep);
   const [configuration, setConfiguration] = useState(null);
